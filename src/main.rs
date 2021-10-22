@@ -62,7 +62,6 @@ fn write_validity_file(dir_path: &str, key: &[u8], iv: &[u8]) {
     }
 }
 
-/// Creates an inner password storage directory keyed by a password via a validity file.
 fn create_vault_if_not_exists(key: &[u8]) -> Result<(), std::io::Error> {
     fs::create_dir(DIR_ROOT)?;
     println!("Password vault not found. Creating new vault using the given password.\n");
@@ -73,7 +72,6 @@ fn create_vault_if_not_exists(key: &[u8]) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-//Returns a key from given user password and the validity file's initialization vector.
 fn get_password_key_and_iv(key: &mut [u8; 32]) -> Vec<u8> {
     loop {
         println!("Enter the vault password. If a password vault does not exist, one will be created with the password you provide.\n");
@@ -103,12 +101,10 @@ fn write_new_encrypted_json_if_not_exists(key: &[u8], iv: &[u8]) {
 }
 
 fn decrypt_and_json_parse_password_container(key: &[u8], iv: &[u8]) -> JsonValue {
-    //Get the encrypted file's bytes.
     let mut encrypted_file = OpenOptions::new().create(true).read(true).write(true).open(&format!("{}{}", DIR_ROOT, DIR_CONTAINER)).expect("Error reading file.");
     let mut encrypted_utf8_json: Vec<u8> = vec![];
     encrypted_file.read_to_end(&mut encrypted_utf8_json);
 
-    //Decrypt and parse the json file from the encrypted utf8 bytes.
     json::parse(
         &std::str::from_utf8(
             &Cryptor::decrypt(&encrypted_utf8_json[..], &key, &iv).expect("Could not decrypt file.")
@@ -165,7 +161,7 @@ fn add_entry(json: &mut JsonValue) {
 
 fn overwrite_container(json: &JsonValue, key: &[u8], iv: &[u8]) {
     if let Ok(mut f) = OpenOptions::new().truncate(true).write(true).open(&format!("{}{}", DIR_ROOT, DIR_CONTAINER)) {
-        let encrypted_f = Cryptor::encrypt(json.dump().as_bytes(), &key, &iv).unwrap(); // {"entries": []} is default. json objects will be in array. [{site, user/email, password}, ... ]
+        let encrypted_f = Cryptor::encrypt(json.dump().as_bytes(), &key, &iv).unwrap();
         f.write(&encrypted_f[..]);
     } else { panic!("Critical error. Failed to overwrite container."); }
 }
@@ -176,7 +172,6 @@ fn main() {
     write_new_encrypted_json_if_not_exists(&key, &iv[..]);
     let mut decrypted_json = decrypt_and_json_parse_password_container(&key, &iv[..]);
     
-    //Get user input to display or write password entries.
     loop {
         println!("\nType an option and then press enter to select the option.\nOptions:\n\t1 -> display all entries.\n\t2 -> add a new entry.\n\t3 -> remove entry by its url.\n\tquit -> stop program and write changes.\n");
 
