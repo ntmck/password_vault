@@ -62,9 +62,12 @@ fn write_validity_file(dir_path: &str, key: &[u8], iv: &[u8]) {
     }
 }
 
-fn create_vault_if_not_exists(key: &[u8]) -> Result<(), std::io::Error> {
+fn create_vault_if_not_exists(key: &[u8], input1: &str) -> Result<(), std::io::Error> {
     fs::create_dir(DIR_ROOT)?;
-    println!("Password vault not found. Creating new vault using the given password.\n");
+    println!("\nPassword vault not found. Creating new vault using the given password.");
+    println!("Please enter your password once more to verify that it has been typed correctly.");
+    let input2 = get_user_input();
+    assert!(input1.as_bytes() == input2.as_bytes(), "Passwords did not match!\n");
     let mut iv: [u8; 16] = [0; 16];
     let mut rng = rand::thread_rng();
     rng.try_fill(&mut iv);
@@ -76,13 +79,12 @@ fn get_password_key_and_iv(key: &mut [u8; 32]) -> Vec<u8> {
     loop {
         println!("Enter the vault password. If a password vault does not exist, one will be created with the password you provide.\n");
 
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).expect("read_line failed.");
+        let input = get_user_input();
 
         println!("Processing password. This may take a few seconds.\n");
         *key = Cryptor::scrypt_simple(&input, &SALT);
 
-        create_vault_if_not_exists(key);
+        create_vault_if_not_exists(key, &input);
         match read_validity_file(&format!("{}{}", DIR_ROOT, DIR_VF), key) {
             Ok(vf_iv) => {
                 println!("Password accepted.\n");
